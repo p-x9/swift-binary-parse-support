@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "BinaryParseSupport",
+    name: "swift-binary-parse-support",
     products: [
         .library(
             name: "BinaryParseSupport",
