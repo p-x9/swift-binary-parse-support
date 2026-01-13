@@ -145,7 +145,7 @@ extension UnicodeStrings.Iterator {
         case 1:
             return false
         case 2:
-            return char == 0xFFFE /* ZERO WIDTH NO-BREAK SPACE (swapped) */
+            return char == 0xFFFE /* ZERO WIDTH NO-BREAK SPACE */
         case 4:
             return char == UInt32(0xFFFE0000) // avoid overflows in 32bit env
         default:
