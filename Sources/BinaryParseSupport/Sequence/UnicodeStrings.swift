@@ -69,7 +69,8 @@ public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
 
     public let isSwapped: Bool
 
-    init(
+    @_spi(Core)
+    public init(
         source: any UnicodeStringsSource,
         offset: Int,
         size: Int,
