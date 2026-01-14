@@ -19,7 +19,7 @@ extension FileHandle {
     }
 }
 
-extension FileHandle: UnicodeStringReadable {
+extension FileHandle: UnicodeStringsSource {
     public var size: Int {
         try! numericCast(seekToEnd())
     }

@@ -21,7 +21,7 @@ final class InFileUnicodeStringsTests: XCTestCase {
             )
 
             let table = UnicodeStrings<UTF8>(
-                fileHandle: file,
+                source: file,
                 offset: 0,
                 size: file.size,
                 isSwapped: false
@@ -52,7 +52,7 @@ final class InFileUnicodeStringsTests: XCTestCase {
             )
 
             let table = UnicodeStrings<UTF8>(
-                fileHandle: file,
+                source: file,
                 offset: 0,
                 size: file.size,
                 isSwapped: false
@@ -80,7 +80,7 @@ final class InFileUnicodeStringsTests: XCTestCase {
             )
 
             let table = UnicodeStrings<UTF8>(
-                fileHandle: file,
+                source: file,
                 offset: 0,
                 size: file.size,
                 isSwapped: false
@@ -114,7 +114,7 @@ final class InFileUnicodeStringsTests: XCTestCase {
             )
 
             let table = UnicodeStrings<UTF16>(
-                fileHandle: file,
+                source: file,
                 offset: 0,
                 size: file.size,
                 isSwapped: false
@@ -154,7 +154,7 @@ final class InFileUnicodeStringsTests: XCTestCase {
             )
 
             let table = UnicodeStrings<UTF16>(
-                fileHandle: file,
+                source: file,
                 offset: 0,
                 size: file.size,
                 isSwapped: false
@@ -193,7 +193,7 @@ final class InFileUnicodeStringsTests: XCTestCase {
             )
 
             let table = UnicodeStrings<UTF32>(
-                fileHandle: file,
+                source: file,
                 offset: 0,
                 size: file.size,
                 isSwapped: false
@@ -222,7 +222,7 @@ final class InFileUnicodeStringsTests: XCTestCase {
             )
 
             let table = UnicodeStrings<UTF8>(
-                fileHandle: file,
+                source: file,
                 offset: 0,
                 size: file.size,
                 isSwapped: false

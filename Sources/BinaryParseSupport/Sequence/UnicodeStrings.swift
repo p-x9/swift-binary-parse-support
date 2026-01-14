@@ -8,7 +8,7 @@
 
 import Foundation
 
-public protocol UnicodeStringReadable {
+public protocol UnicodeStringsSource {
     var size: Int { get }
 
     func _readString<Encoding: _UnicodeEncoding>(
@@ -21,8 +21,45 @@ public protocol UnicodeStringReadable {
     func readAllData() throws -> Data
 }
 
+public struct MemoryUnicodeStringsSource: UnicodeStringsSource {
+    public let ptr: UnsafeRawPointer
+    public let size: Int
+
+    public init(ptr: UnsafeRawPointer, size: Int) {
+        self.ptr = ptr
+        self.size = size
+    }
+}
+
+extension MemoryUnicodeStringsSource {
+    public func _readString<Encoding: _UnicodeEncoding>(
+        offset: Int,
+        as encoding: Encoding.Type
+    ) -> (string: String, numberOfBytes: Int)? {
+        ptr
+            .advanced(by: offset)
+            .assumingMemoryBound(to: Encoding.CodeUnit.self)
+            .readString(as: Encoding.self)
+    }
+
+    public func readData(offset: Int, length: Int) throws -> Data {
+        .init(bytes: ptr, count: size)
+    }
+
+    public func read<T>(offset: Int, as: T.Type) throws -> T {
+        ptr
+            .advanced(by: offset)
+            .assumingMemoryBound(to: T.self)
+            .pointee
+    }
+
+    public func readAllData() throws -> Data {
+        .init(bytes: ptr, count: size)
+    }
+}
+
 public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
-    private let fileHandle: any UnicodeStringReadable
+    private let source: any UnicodeStringsSource
 
     /// file offset of string table start
     public let offset: Int
@@ -33,33 +70,33 @@ public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
     public let isSwapped: Bool
 
     init(
-        fileHandle: any UnicodeStringReadable,
+        source: any UnicodeStringsSource,
         offset: Int,
         size: Int,
         isSwapped: Bool
     ) {
-        self.fileHandle = fileHandle
+        self.source = source
         self.offset = offset
         self.size = size
         self.isSwapped = isSwapped
     }
 
     public func makeIterator() -> Iterator {
-        .init(fileHandle: fileHandle, isSwapped: isSwapped)
+        .init(source: source, isSwapped: isSwapped)
     }
 }
 
 extension UnicodeStrings {
     public var data: Data? {
-        try? fileHandle.readAllData()
+        try? source.readAllData()
     }
 }
 
 extension UnicodeStrings {
     public func string(at offset: Int) -> Element? {
-        guard 0 <= offset, offset < fileHandle.size else { return nil }
+        guard 0 <= offset, offset < source.size else { return nil }
 
-        guard let (_string, length) = fileHandle._readString(
+        guard let (_string, length) = source._readString(
             offset: numericCast(offset),
             as: Encoding.self
         ) else {
@@ -67,7 +104,7 @@ extension UnicodeStrings {
         }
         var string = _string
 
-        let char = try! fileHandle.read(
+        let char = try! source.read(
             offset: offset,
             as: Encoding.CodeUnit.self
         )
@@ -77,7 +114,7 @@ extension UnicodeStrings {
                 string: &string,
                 at: offset,
                 length: length,
-                fileHandle: fileHandle,
+                source: source,
                 hasBOM: Iterator.shouldSwap(char),
                 encoding: Encoding.self
             )
@@ -90,15 +127,15 @@ extension UnicodeStrings {
     public struct Iterator: IteratorProtocol {
         public typealias Element = StringTableEntry
 
-        private let fileHandle: any UnicodeStringReadable
+        private let source: any UnicodeStringsSource
         private let tableSize: Int
         private let isSwapped: Bool
 
         private var nextOffset: Int
 
-        init(fileHandle: any UnicodeStringReadable, isSwapped: Bool) {
-            self.fileHandle = fileHandle
-            self.tableSize = fileHandle.size
+        init(source: any UnicodeStringsSource, isSwapped: Bool) {
+            self.source = source
+            self.tableSize = source.size
             self.nextOffset = 0
             self.isSwapped = isSwapped
         }
@@ -106,7 +143,7 @@ extension UnicodeStrings {
         public mutating func next() -> Element? {
             guard nextOffset < tableSize else { return nil }
 
-            guard let (_string, length) = fileHandle._readString(
+            guard let (_string, length) = source._readString(
                 offset: nextOffset,
                 as: Encoding.self
             ) else { return nil }
@@ -116,7 +153,7 @@ extension UnicodeStrings {
                 nextOffset += length
             }
 
-            let char = try! fileHandle.read(
+            let char = try! source.read(
                 offset: nextOffset,
                 as: Encoding.CodeUnit.self
             )
@@ -126,7 +163,7 @@ extension UnicodeStrings {
                     string: &string,
                     at: nextOffset,
                     length: length,
-                    fileHandle: fileHandle,
+                    source: source,
                     hasBOM: Self.shouldSwap(char),
                     encoding: Encoding.self
                 )
@@ -167,11 +204,11 @@ fileprivate func handleSwap<Encoding: _UnicodeEncoding>(
     string: inout String,
     at offset: Int,
     length: Int,
-    fileHandle: any UnicodeStringReadable,
+    source: any UnicodeStringsSource,
     hasBOM: Bool,
     encoding: Encoding.Type
 ) {
-    var data = try! fileHandle.readData(
+    var data = try! source.readData(
         offset: offset,
         length: length
     )
