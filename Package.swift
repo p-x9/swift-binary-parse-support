@@ -10,15 +10,9 @@ let package = Package(
             targets: ["BinaryParseSupport"]
         ),
     ],
-    dependencies: [
-        .package(url: "https://github.com/p-x9/swift-fileio.git", from: "0.13.0")
-    ],
     targets: [
         .target(
-            name: "BinaryParseSupport",
-            dependencies: [
-                .product(name: "FileIO", package: "swift-fileio")
-            ]
+            name: "BinaryParseSupport"
         ),
         .testTarget(
             name: "BinaryParseSupportTests",

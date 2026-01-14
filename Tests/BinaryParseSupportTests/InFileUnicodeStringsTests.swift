@@ -4,6 +4,7 @@ import FileIO
 @testable import BinaryParseSupport
 
 final class InFileUnicodeStringsTests: XCTestCase {
+    typealias FileHandle = Foundation.FileHandle
 
     // MARK: - UTF-8 (ASCII)
 
@@ -14,15 +15,12 @@ final class InFileUnicodeStringsTests: XCTestCase {
             size: bytes.count,
             contents: Data(bytes)
         ) { url in
-            let file = try MemoryMappedFile.open(
+            let file = try FileHandle.open(
                 url: url,
                 isWritable: false
             )
 
-            let table = UnicodeStrings<
-                MemoryMappedFile,
-                UTF8
-            >(
+            let table = UnicodeStrings<UTF8>(
                 fileHandle: file,
                 offset: 0,
                 size: file.size,
@@ -48,15 +46,12 @@ final class InFileUnicodeStringsTests: XCTestCase {
             size: bytes.count,
             contents: Data(bytes)
         ) { url in
-            let file = try MemoryMappedFile.open(
+            let file = try FileHandle.open(
                 url: url,
                 isWritable: false
             )
 
-            let table = UnicodeStrings<
-                MemoryMappedFile,
-                UTF8
-            >(
+            let table = UnicodeStrings<UTF8>(
                 fileHandle: file,
                 offset: 0,
                 size: file.size,
@@ -79,15 +74,12 @@ final class InFileUnicodeStringsTests: XCTestCase {
             size: bytes.count,
             contents: Data(bytes)
         ) { url in
-            let file = try MemoryMappedFile.open(
+            let file = try FileHandle.open(
                 url: url,
                 isWritable: false
             )
 
-            let table = UnicodeStrings<
-                MemoryMappedFile,
-                UTF8
-            >(
+            let table = UnicodeStrings<UTF8>(
                 fileHandle: file,
                 offset: 0,
                 size: file.size,
@@ -116,15 +108,12 @@ final class InFileUnicodeStringsTests: XCTestCase {
             size: data.count,
             contents: data
         ) { url in
-            let file = try MemoryMappedFile.open(
+            let file = try FileHandle.open(
                 url: url,
                 isWritable: false
             )
 
-            let table = UnicodeStrings<
-                MemoryMappedFile,
-                UTF16
-            >(
+            let table = UnicodeStrings<UTF16>(
                 fileHandle: file,
                 offset: 0,
                 size: file.size,
@@ -159,15 +148,12 @@ final class InFileUnicodeStringsTests: XCTestCase {
             size: data.count,
             contents: data
         ) { url in
-            let file = try MemoryMappedFile.open(
+            let file = try FileHandle.open(
                 url: url,
                 isWritable: false
             )
 
-            let table = UnicodeStrings<
-                MemoryMappedFile,
-                UTF16
-            >(
+            let table = UnicodeStrings<UTF16>(
                 fileHandle: file,
                 offset: 0,
                 size: file.size,
@@ -201,15 +187,12 @@ final class InFileUnicodeStringsTests: XCTestCase {
             size: data.count,
             contents: data
         ) { url in
-            let file = try MemoryMappedFile.open(
+            let file = try FileHandle.open(
                 url: url,
                 isWritable: false
             )
 
-            let table = UnicodeStrings<
-                MemoryMappedFile,
-                UTF32
-            >(
+            let table = UnicodeStrings<UTF32>(
                 fileHandle: file,
                 offset: 0,
                 size: file.size,
@@ -233,15 +216,12 @@ final class InFileUnicodeStringsTests: XCTestCase {
             size: bytes.count,
             contents: Data(bytes)
         ) { url in
-            let file = try MemoryMappedFile.open(
+            let file = try FileHandle.open(
                 url: url,
                 isWritable: false
             )
 
-            let table = UnicodeStrings<
-                MemoryMappedFile,
-                UTF8
-            >(
+            let table = UnicodeStrings<UTF8>(
                 fileHandle: file,
                 offset: 0,
                 size: file.size,

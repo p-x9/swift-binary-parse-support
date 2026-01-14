@@ -7,13 +7,22 @@
 //
 
 import Foundation
-import FileIO
 
-public struct UnicodeStrings<
-    File: _FileIOProtocol,
-    Encoding: _UnicodeEncoding
->: StringTable {
-    private let fileHandle: File
+public protocol UnicodeStringReadable {
+    var size: Int { get }
+
+    func _readString<Encoding: _UnicodeEncoding>(
+        offset: Int,
+        as encoding: Encoding.Type
+    ) -> (string: String, numberOfBytes: Int)?
+
+    func readData(offset: Int, length: Int) throws -> Data
+    func read<T>(offset: Int, as: T.Type) throws -> T
+    func readAllData() throws -> Data
+}
+
+public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
+    private let fileHandle: any UnicodeStringReadable
 
     /// file offset of string table start
     public let offset: Int
@@ -24,7 +33,7 @@ public struct UnicodeStrings<
     public let isSwapped: Bool
 
     init(
-        fileHandle: File,
+        fileHandle: any UnicodeStringReadable,
         offset: Int,
         size: Int,
         isSwapped: Bool
@@ -81,13 +90,13 @@ extension UnicodeStrings {
     public struct Iterator: IteratorProtocol {
         public typealias Element = StringTableEntry
 
-        private let fileHandle: File
+        private let fileHandle: any UnicodeStringReadable
         private let tableSize: Int
         private let isSwapped: Bool
 
         private var nextOffset: Int
 
-        init(fileHandle: File, isSwapped: Bool) {
+        init(fileHandle: any UnicodeStringReadable, isSwapped: Bool) {
             self.fileHandle = fileHandle
             self.tableSize = fileHandle.size
             self.nextOffset = 0
@@ -158,7 +167,7 @@ fileprivate func handleSwap<Encoding: _UnicodeEncoding>(
     string: inout String,
     at offset: Int,
     length: Int,
-    fileHandle: some _FileIOProtocol,
+    fileHandle: any UnicodeStringReadable,
     hasBOM: Bool,
     encoding: Encoding.Type
 ) {
