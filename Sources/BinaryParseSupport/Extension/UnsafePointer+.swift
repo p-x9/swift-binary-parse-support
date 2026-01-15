@@ -9,7 +9,8 @@
 import Foundation
 
 extension UnsafePointer<UInt8> {
-    func readString() -> (String, Int) {
+    @_spi(Core)
+    public func readString() -> (String, Int) {
         let offset = Int(bitPattern: strchr(self, 0)) + 1 - Int(bitPattern: self)
         let string = String(cString: self)
 
@@ -18,7 +19,8 @@ extension UnsafePointer<UInt8> {
 }
 
 extension UnsafePointer<CChar> {
-    func readString() -> (String, Int) {
+    @_spi(Core)
+    public func readString() -> (String, Int) {
         let offset = Int(bitPattern: strchr(self, 0)) + 1 - Int(bitPattern: self)
         let string = String(cString: self)
 
@@ -27,7 +29,8 @@ extension UnsafePointer<CChar> {
 }
 
 extension UnsafePointer where Pointee: FixedWidthInteger {
-    func findNullTerminator() -> UnsafePointer<Pointee> {
+    @_spi(Core)
+    public func findNullTerminator() -> UnsafePointer<Pointee> {
         var ptr = self
         while ptr.pointee != 0 {
             ptr = ptr.advanced(by: 1)
@@ -35,7 +38,8 @@ extension UnsafePointer where Pointee: FixedWidthInteger {
         return ptr
     }
 
-    func readString<Encoding: _UnicodeEncoding>(
+    @_spi(Core)
+    public func readString<Encoding: _UnicodeEncoding>(
         as encoding: Encoding.Type
     ) -> (String, Int) where Pointee == Encoding.CodeUnit {
         let nullTerminator = findNullTerminator()

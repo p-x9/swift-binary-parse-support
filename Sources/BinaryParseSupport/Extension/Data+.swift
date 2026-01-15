@@ -8,7 +8,8 @@
 import Foundation
 
 extension Data {
-    func byteSwapped<T: FixedWidthInteger>(_ type: T.Type) -> Data {
+    @_spi(Core)
+    public func byteSwapped<T: FixedWidthInteger>(_ type: T.Type) -> Data {
         guard count >= MemoryLayout<T>.size else { return self }
 
         let valueArray = self.withUnsafeBytes {
