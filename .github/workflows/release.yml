@@ -67,8 +67,3 @@ jobs:
           body_path: "./release_body.txt"
           files: |
             ./XCFrameworks/BinaryParseSupport.xcframework.zip
-
-  docc:
-    name: Deploy Document
-    needs: [build]
-    uses: ./.github/workflows/docc.yml
