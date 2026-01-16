@@ -15,7 +15,6 @@ public struct DataSequence<T>: Sequence {
     private let entrySize: Int
     private let numberOfElements: Int
 
-    @_spi(Core)
     public init(
         data: Data,
         numberOfElements: Int
@@ -25,7 +24,6 @@ public struct DataSequence<T>: Sequence {
         self.numberOfElements = numberOfElements
     }
 
-    @_spi(Core)
     public init(
         data: Data,
         entrySize: Int

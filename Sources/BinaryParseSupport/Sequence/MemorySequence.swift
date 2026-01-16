@@ -15,7 +15,6 @@ public struct MemorySequence<T>: Sequence {
     private let entrySize: Int
     private let numberOfElements: Int
 
-    @_spi(Core)
     public init(
         basePointer: UnsafePointer<T>,
         numberOfElements: Int
@@ -25,7 +24,6 @@ public struct MemorySequence<T>: Sequence {
         self.numberOfElements = numberOfElements
     }
 
-    @_spi(Core)
     public init(
         basePointer: UnsafePointer<T>,
         entrySize: Int,
