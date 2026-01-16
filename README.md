@@ -36,7 +36,10 @@ It is designed to support efficient and safe binary parsing for file formats and
 Add the package to your `Package.swift` dependencies:
 
 ```swift
-.package(url: "https://github.com/p-x9/swift-binary-parse-support.git", from: "0.2.0")
+.package(
+    url: "https://github.com/p-x9/swift-binary-parse-support.git",
+    from: "0.2.0"
+)
 ```
 
 Then add `"BinaryParseSupport"` to your target dependencies.
