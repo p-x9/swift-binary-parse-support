@@ -9,6 +9,16 @@ let package = Package(
             name: "BinaryParseSupport",
             targets: ["BinaryParseSupport"]
         ),
+        .library(
+            name: "BinaryParseSupportDynamic",
+            type: .dynamic,
+            targets: ["BinaryParseSupport"]
+        ),
+        .library(
+            name: "BinaryParseSupportStatic",
+            type: .static,
+            targets: ["BinaryParseSupport"]
+        ),
     ],
     targets: [
         .target(
