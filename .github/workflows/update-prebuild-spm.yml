@@ -1,0 +1,34 @@
+name: Update Prebuilt SPM
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-binary-target:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Extract Release Information
+        id: release_info
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          BINARY_PARSE_SUPPORT_CHECKSUM=$(echo "$RELEASE_BODY" | awk -v target="BinaryParseSupport" '
+            found { print; exit }
+            $0 == target { found=1 }
+          ')
+
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "BINARY_PARSE_SUPPORT_CHECKSUM=${BINARY_PARSE_SUPPORT_CHECKSUM}" >> $GITHUB_ENV
+
+      - name: Send repository_dispatch event
+        run: |
+          curl -X POST -H "Accept: application/vnd.github.v3+json" \
+             -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
+             https://api.github.com/repos/p-x9/swift-binary-parse-support-bin/dispatches \
+             --data "$(jq -n \
+              --arg version "$VERSION" \
+              --arg binaryParseSupportChecksum "$BINARY_PARSE_SUPPORT_CHECKSUM" \
+              '{event_type: "update_binary_version", client_payload: {version: $version, "binary_parse_support_checksum": $binaryParseSupportChecksum}}')"
