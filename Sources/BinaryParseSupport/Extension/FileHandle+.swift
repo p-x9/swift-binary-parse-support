@@ -14,7 +14,7 @@ extension FileHandle {
 
 extension FileHandle: UnicodeStringsSource {
     @_implements(UnicodeStringsSource, size)
-    public var _unicdeStringsSourceSize: Int {
+    public var _unicodeStringsSourceSize: Int {
         numericCast(seekToEndOfFile())
     }
 
