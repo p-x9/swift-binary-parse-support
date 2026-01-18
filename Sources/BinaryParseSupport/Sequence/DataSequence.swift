@@ -43,6 +43,12 @@ public struct DataSequence<T>: Sequence {
 }
 
 extension DataSequence {
+    public var size: Int {
+        data.count
+    }
+}
+
+extension DataSequence {
     public struct Iterator: IteratorProtocol {
         public typealias Element = T
 
