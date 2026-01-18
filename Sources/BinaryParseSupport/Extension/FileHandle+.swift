@@ -3,14 +3,14 @@
 //  swift-binary-parse-support
 //
 //  Created by p-x9 on 2026/01/18
-//  
+//
 //
 
 import Foundation
 
 extension FileHandle: UnicodeStringsSource {
     @_implements(UnicodeStringsSource, size)
-    public var _unicdeStringsSourceSize: Int {
+    public var _unicodeStringsSourceSize: Int {
         let current = offsetInFile
         let size = seekToEndOfFile()
         seek(toFileOffset: current)
