@@ -8,14 +8,13 @@
 
 import Foundation
 
-extension FileHandle {
-    var size: UInt64 { seekToEndOfFile() }
-}
-
 extension FileHandle: UnicodeStringsSource {
     @_implements(UnicodeStringsSource, size)
     public var _unicdeStringsSourceSize: Int {
-        numericCast(seekToEndOfFile())
+        let current = offsetInFile
+        let size = seekToEndOfFile()
+        seek(toFileOffset: current)
+        return numericCast(size)
     }
 
     public func _readString<Encoding: _UnicodeEncoding>(
