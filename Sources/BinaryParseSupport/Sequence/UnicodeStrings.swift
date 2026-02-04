@@ -18,7 +18,6 @@ public protocol UnicodeStringsSource {
 
     func readData(offset: Int, length: Int) throws -> Data
     func read<T>(offset: Int, as: T.Type) throws -> T
-    func readAllData() throws -> Data
 }
 
 public struct MemoryUnicodeStringsSource: UnicodeStringsSource {
@@ -43,7 +42,7 @@ extension MemoryUnicodeStringsSource {
     }
 
     public func readData(offset: Int, length: Int) throws -> Data {
-        .init(bytes: ptr, count: size)
+        .init(bytes: ptr.advanced(by: offset), count: length)
     }
 
     public func read<T>(offset: Int, as: T.Type) throws -> T {
@@ -51,10 +50,6 @@ extension MemoryUnicodeStringsSource {
             .advanced(by: offset)
             .assumingMemoryBound(to: T.self)
             .pointee
-    }
-
-    public func readAllData() throws -> Data {
-        .init(bytes: ptr, count: size)
     }
 }
 
@@ -82,22 +77,31 @@ public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
     }
 
     public func makeIterator() -> Iterator {
-        .init(source: source, isSwapped: isSwapped)
+        .init(
+            source: source,
+            baseOffset: offset,
+            size: Swift.min(size, source.size),
+            isSwapped: isSwapped
+        )
     }
 }
 
 extension UnicodeStrings {
     public var data: Data? {
-        try? source.readAllData()
+        try? source.readData(offset: offset, length: size)
     }
 }
 
 extension UnicodeStrings {
     public func string(at offset: Int) -> Element? {
-        guard 0 <= offset, offset < source.size else { return nil }
+        guard 0 <= offset,
+              self.offset + offset < source.size,
+              offset < size else {
+            return nil
+        }
 
         guard let (_string, length) = source._readString(
-            offset: numericCast(offset),
+            offset: numericCast(self.offset + offset),
             as: Encoding.self
         ) else {
             return nil
@@ -105,14 +109,14 @@ extension UnicodeStrings {
         var string = _string
 
         let char = try! source.read(
-            offset: offset,
+            offset: self.offset + offset,
             as: Encoding.CodeUnit.self
         )
 
         if isSwapped || Iterator.shouldSwap(char) {
             handleSwap(
                 string: &string,
-                at: offset,
+                at: self.offset + offset,
                 length: length,
                 source: source,
                 hasBOM: Iterator.shouldSwap(char),
@@ -128,23 +132,31 @@ extension UnicodeStrings {
         public typealias Element = StringTableEntry
 
         private let source: any UnicodeStringsSource
+        private let baseOffset: Int
         private let tableSize: Int
         private let isSwapped: Bool
 
         private var nextOffset: Int
 
-        init(source: any UnicodeStringsSource, isSwapped: Bool) {
+        init(
+            source: any UnicodeStringsSource,
+            baseOffset: Int,
+            size: Int,
+            isSwapped: Bool
+        ) {
             self.source = source
-            self.tableSize = source.size
+            self.baseOffset = baseOffset
+            self.tableSize = size
             self.nextOffset = 0
             self.isSwapped = isSwapped
         }
 
         public mutating func next() -> Element? {
             guard nextOffset < tableSize else { return nil }
+            guard baseOffset + nextOffset < source.size else { return nil }
 
             guard let (_string, length) = source._readString(
-                offset: nextOffset,
+                offset: baseOffset + nextOffset,
                 as: Encoding.self
             ) else { return nil }
             var string = _string
@@ -154,14 +166,14 @@ extension UnicodeStrings {
             }
 
             let char = try! source.read(
-                offset: nextOffset,
+                offset: baseOffset + nextOffset,
                 as: Encoding.CodeUnit.self
             )
 
             if isSwapped || Self.shouldSwap(char) {
                 handleSwap(
                     string: &string,
-                    at: nextOffset,
+                    at: baseOffset + nextOffset,
                     length: length,
                     source: source,
                     hasBOM: Self.shouldSwap(char),

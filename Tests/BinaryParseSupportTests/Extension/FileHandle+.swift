@@ -72,8 +72,4 @@ extension FileHandle: UnicodeStringsSource {
             $0.load(as: T.self)
         }
     }
-
-    public func readAllData() throws -> Data {
-        try readToEnd() ?? .init()
-    }
 }
