@@ -1,6 +1,5 @@
 import XCTest
 import Foundation
-import FileIO
 @testable import BinaryParseSupport
 
 final class InFileUnicodeStringsTests: XCTestCase {
@@ -208,6 +207,70 @@ final class InFileUnicodeStringsTests: XCTestCase {
     }
 
     // MARK: - Boundary
+
+    func testTableOffsetIsRespected() throws {
+        let prefix: [UInt8] = [0xAA, 0xBB, 0xCC, 0xDD]
+        let tableBytes: [UInt8] = [
+            "foo", "bar"
+        ].flatMap { Array($0.utf8) + [0] }
+        let bytes = prefix + tableBytes
+
+        try withTemporaryFile(
+            size: bytes.count,
+            contents: Data(bytes)
+        ) { url in
+            let file = try FileHandle.open(
+                url: url,
+                isWritable: false
+            )
+
+            let table = UnicodeStrings<UTF8>(
+                source: file,
+                offset: prefix.count,
+                size: tableBytes.count,
+                isSwapped: false
+            )
+
+            let entries = Array(table)
+
+            XCTAssertEqual(entries.map(\.string), ["foo", "bar"])
+            XCTAssertEqual(entries.map(\.offset), [0, 4])
+            XCTAssertEqual(table.string(at: 0)?.string, "foo")
+            XCTAssertEqual(table.string(at: 4)?.string, "bar")
+        }
+    }
+
+    func testTableSizeLimitsIteration() throws {
+        let tableBytes: [UInt8] = [
+            "foo", "bar"
+        ].flatMap { Array($0.utf8) + [0] }
+
+        let limitedSize = Array("foo".utf8).count + 1
+
+        try withTemporaryFile(
+            size: tableBytes.count,
+            contents: Data(tableBytes)
+        ) { url in
+            let file = try FileHandle.open(
+                url: url,
+                isWritable: false
+            )
+
+            let table = UnicodeStrings<UTF8>(
+                source: file,
+                offset: 0,
+                size: limitedSize,
+                isSwapped: false
+            )
+
+            let entries = Array(table)
+
+            XCTAssertEqual(entries.count, 1)
+            XCTAssertEqual(entries[0].string, "foo")
+            XCTAssertEqual(entries[0].offset, 0)
+            XCTAssertNil(table.string(at: 4))
+        }
+    }
 
     func testInvalidOffsetReturnsNil() throws {
         let bytes: [UInt8] = [0]
