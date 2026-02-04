@@ -1,6 +1,5 @@
 import XCTest
 import Foundation
-import FileIO
 @testable import BinaryParseSupport
 
 final class InFileUnicodeStringsTests: XCTestCase {

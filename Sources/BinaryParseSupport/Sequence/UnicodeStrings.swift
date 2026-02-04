@@ -43,7 +43,7 @@ extension MemoryUnicodeStringsSource {
     }
 
     public func readData(offset: Int, length: Int) throws -> Data {
-        .init(bytes: ptr, count: size)
+        .init(bytes: ptr.advanced(by: offset), count: length)
     }
 
     public func read<T>(offset: Int, as: T.Type) throws -> T {
@@ -62,6 +62,7 @@ public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
     private let source: any UnicodeStringsSource
 
     /// file offset of string table start
+    /// (offset to `source` start location)
     public let offset: Int
 
     /// size of string table
@@ -82,7 +83,11 @@ public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
     }
 
     public func makeIterator() -> Iterator {
-        .init(source: source, isSwapped: isSwapped)
+        .init(
+            source: source,
+            size: Swift.min(size, source.size),
+            isSwapped: isSwapped
+        )
     }
 }
 
@@ -133,9 +138,13 @@ extension UnicodeStrings {
 
         private var nextOffset: Int
 
-        init(source: any UnicodeStringsSource, isSwapped: Bool) {
+        init(
+            source: any UnicodeStringsSource,
+            size: Int,
+            isSwapped: Bool
+        ) {
             self.source = source
-            self.tableSize = source.size
+            self.tableSize = size
             self.nextOffset = 0
             self.isSwapped = isSwapped
         }
