@@ -93,6 +93,37 @@ final class InFileUnicodeStringsTests: XCTestCase {
         }
     }
 
+    func testUTF8CustomTerminator() throws {
+        let bytes: [UInt8] = [
+            "foo", "bar", "baz"
+        ].flatMap {
+            Array($0.utf8) + [UInt8(ascii: "|")]
+        }
+
+        try withTemporaryFile(
+            size: bytes.count,
+            contents: Data(bytes)
+        ) { url in
+            let file = try FileHandle.open(
+                url: url,
+                isWritable: false
+            )
+
+            let table = UnicodeStrings<UTF8>(
+                source: file,
+                offset: 0,
+                size: file.size,
+                isSwapped: false,
+                terminator: UInt8(ascii: "|")
+            )
+
+            let entries = Array(table)
+
+            XCTAssertEqual(entries.map(\.string), ["foo", "bar", "baz"])
+            XCTAssertEqual(entries.map(\.offset), [0, 4, 8])
+        }
+    }
+
     // MARK: - UTF-16 Little Endian
 
     func testUTF16LE() throws {
@@ -124,6 +155,48 @@ final class InFileUnicodeStringsTests: XCTestCase {
             XCTAssertEqual(entries.count, 1)
             XCTAssertEqual(entries[0].string, "hello")
             XCTAssertEqual(table.string(at: 0)?.string, "hello")
+        }
+    }
+
+    func testUTF16LECustomTerminator() throws {
+        var data = Data()
+        let terminator: UInt16 = 0x007C // "|"
+
+        for u in "foo".utf16 {
+            data.append(UInt8(u & 0xFF))
+            data.append(UInt8(u >> 8))
+        }
+        data.append(UInt8(terminator & 0xFF))
+        data.append(UInt8(terminator >> 8))
+
+        for u in "bar".utf16 {
+            data.append(UInt8(u & 0xFF))
+            data.append(UInt8(u >> 8))
+        }
+        data.append(UInt8(terminator & 0xFF))
+        data.append(UInt8(terminator >> 8))
+
+        try withTemporaryFile(
+            size: data.count,
+            contents: data
+        ) { url in
+            let file = try FileHandle.open(
+                url: url,
+                isWritable: false
+            )
+
+            let table = UnicodeStrings<UTF16>(
+                source: file,
+                offset: 0,
+                size: file.size,
+                isSwapped: false,
+                terminator: terminator
+            )
+
+            let entries = Array(table)
+
+            XCTAssertEqual(entries.map(\.string), ["foo", "bar"])
+            XCTAssertEqual(entries.map(\.offset), [0, 8])
         }
     }
 
