@@ -19,9 +19,9 @@ extension FileHandle: UnicodeStringsSource {
 
     public func _readString<Encoding: _UnicodeEncoding>(
         offset: Int,
-        as encoding: Encoding.Type
+        as encoding: Encoding.Type,
+        terminator: Encoding.CodeUnit
     ) -> (string: String, numberOfBytes: Int)? {
-        var count = 0
         var offset: Int = offset
 
         var characters: [Encoding.CodeUnit] = []
@@ -29,26 +29,13 @@ extension FileHandle: UnicodeStringsSource {
         while let char = try? read(
             offset: offset,
             as: Encoding.CodeUnit.self
-        ), char != 0 {
+        ), char != terminator {
             characters.append(char)
-            count += 1
             offset += MemoryLayout<Encoding.CodeUnit>.size
         }
-
-        characters.append(0)
-
-        return characters.withUnsafeBytes { bufferPtr in
-            guard let baseAddress = bufferPtr.baseAddress else {
-                return nil
-            }
-            let string = String(
-                decodingCString: baseAddress
-                    .assumingMemoryBound(to: Encoding.CodeUnit.self),
-                as: Encoding.self
-            )
-            let length = (count + 1) * MemoryLayout<Encoding.CodeUnit>.size
-            return (string, length)
-        }
+        let string = String(decoding: characters, as: Encoding.self)
+        let length = (characters.count + 1) * MemoryLayout<Encoding.CodeUnit>.size
+        return (string, length)
     }
 
     public func readData(offset: Int, length: Int) throws -> Data {

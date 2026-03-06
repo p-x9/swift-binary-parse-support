@@ -13,7 +13,8 @@ public protocol UnicodeStringsSource {
 
     func _readString<Encoding: _UnicodeEncoding>(
         offset: Int,
-        as encoding: Encoding.Type
+        as encoding: Encoding.Type,
+        terminator: Encoding.CodeUnit
     ) -> (string: String, numberOfBytes: Int)?
 
     func readData(offset: Int, length: Int) throws -> Data
@@ -34,12 +35,13 @@ public struct MemoryUnicodeStringsSource: UnicodeStringsSource {
 extension MemoryUnicodeStringsSource {
     public func _readString<Encoding: _UnicodeEncoding>(
         offset: Int,
-        as encoding: Encoding.Type
+        as encoding: Encoding.Type,
+        terminator: Encoding.CodeUnit
     ) -> (string: String, numberOfBytes: Int)? {
         ptr
             .advanced(by: offset)
             .assumingMemoryBound(to: Encoding.CodeUnit.self)
-            .readString(as: Encoding.self)
+            .readString(as: Encoding.self, terminator: terminator)
     }
 
     public func readData(offset: Int, length: Int) throws -> Data {
@@ -70,23 +72,28 @@ public struct UnicodeStrings<Encoding: _UnicodeEncoding>: StringTable {
 
     public let isSwapped: Bool
 
+    public let terminator: Encoding.CodeUnit
+
     public init(
         source: any UnicodeStringsSource,
         offset: Int,
         size: Int,
-        isSwapped: Bool
+        isSwapped: Bool,
+        terminator: Encoding.CodeUnit = 0
     ) {
         self.source = source
         self.offset = offset
         self.size = size
         self.isSwapped = isSwapped
+        self.terminator = terminator
     }
 
     public func makeIterator() -> Iterator {
         .init(
             source: source,
             size: Swift.min(size, source.size),
-            isSwapped: isSwapped
+            isSwapped: isSwapped,
+            terminator: terminator
         )
     }
 }
@@ -103,7 +110,8 @@ extension UnicodeStrings {
 
         guard let (_string, length) = source._readString(
             offset: numericCast(offset),
-            as: Encoding.self
+            as: Encoding.self,
+            terminator: terminator
         ) else {
             return nil
         }
@@ -136,17 +144,21 @@ extension UnicodeStrings {
         private let tableSize: Int
         private let isSwapped: Bool
 
+        private let terminator: Encoding.CodeUnit
+
         private var nextOffset: Int
 
         init(
             source: any UnicodeStringsSource,
             size: Int,
-            isSwapped: Bool
+            isSwapped: Bool,
+            terminator: Encoding.CodeUnit
         ) {
             self.source = source
             self.tableSize = size
             self.nextOffset = 0
             self.isSwapped = isSwapped
+            self.terminator = terminator
         }
 
         public mutating func next() -> Element? {
@@ -154,7 +166,8 @@ extension UnicodeStrings {
 
             guard let (_string, length) = source._readString(
                 offset: nextOffset,
-                as: Encoding.self
+                as: Encoding.self,
+                terminator: terminator
             ) else { return nil }
             var string = _string
 

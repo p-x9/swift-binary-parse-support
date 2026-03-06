@@ -3,7 +3,7 @@
 //  swift-binary-parse-support
 //
 //  Created by p-x9 on 2026/01/07
-//  
+//
 //
 
 import Foundation
@@ -31,8 +31,15 @@ extension UnsafePointer<CChar> {
 extension UnsafePointer where Pointee: FixedWidthInteger {
     @_spi(Core)
     public func findNullTerminator() -> UnsafePointer<Pointee> {
+        findTerminator(0)
+    }
+
+    @_spi(Core)
+    public func findTerminator(
+        _ terminator: Pointee = 0
+    ) -> UnsafePointer<Pointee> {
         var ptr = self
-        while ptr.pointee != 0 {
+        while ptr.pointee != terminator {
             ptr = ptr.advanced(by: 1)
         }
         return ptr
@@ -40,13 +47,16 @@ extension UnsafePointer where Pointee: FixedWidthInteger {
 
     @_spi(Core)
     public func readString<Encoding: _UnicodeEncoding>(
-        as encoding: Encoding.Type
+        as encoding: Encoding.Type,
+        terminator: Encoding.CodeUnit = 0
     ) -> (String, Int) where Pointee == Encoding.CodeUnit {
-        let nullTerminator = findNullTerminator()
-        let offset = Int(bitPattern: nullTerminator) + MemoryLayout<Pointee>.size - Int(bitPattern: self)
-        let string = String(decodingCString: self, as: Encoding.self)
+        let terminatorPointer = findTerminator(terminator)
+        let length = self.distance(to: terminatorPointer)
+        let offset = length * MemoryLayout<Pointee>.size + MemoryLayout<Pointee>.size
+
+        let buffer = UnsafeBufferPointer(start: self, count: length)
+        let string = String(decoding: buffer, as: Encoding.self)
 
         return (string, offset)
     }
 }
-
