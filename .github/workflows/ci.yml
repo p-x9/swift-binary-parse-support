@@ -1,0 +1,160 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+      - LICENSE
+  pull_request:
+    paths-ignore:
+      - README.md
+      - LICENSE
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_16.2.app
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.2.app
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
+
+  linux-build:
+    name: Linux Test
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install Swift
+        # WORKAROUND:https://github.com/swift-actions/setup-swift/pull/680
+        uses: swift-actions/setup-swift@bb83339d1e8577741bdc6c65ba551ce7dc0fb854
+        with:
+          swift-version: '5.10.1'
+
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift test
+
+  cross-build:
+    name: ${{ matrix.target.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: Static Linux / musl (x86_64)
+            bundle: static-linux-0.1.0
+            sdk: x86_64-swift-linux-musl
+            checksum: 3fd798bef6f4408f1ea5a6f94ce4d4052830c4326ab85ebc04f983f01b3da407
+          - name: Static Linux / musl (aarch64)
+            bundle: static-linux-0.1.0
+            sdk: aarch64-swift-linux-musl
+            checksum: 3fd798bef6f4408f1ea5a6f94ce4d4052830c4326ab85ebc04f983f01b3da407
+          - name: Android (x86_64)
+            bundle: android
+            sdk: x86_64-unknown-linux-android28
+            build-option: --static-swift-stdlib
+            checksum: 939e933549d12d28f2e0bf71019d734d309859e9773c572657ce565a81f85d68
+          - name: Android (aarch64)
+            bundle: android
+            sdk: aarch64-unknown-linux-android28
+            build-option: --static-swift-stdlib
+            checksum: 939e933549d12d28f2e0bf71019d734d309859e9773c572657ce565a81f85d68
+    steps:
+      - name: Install swiftly
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev
+          curl -L https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz > swiftly.tar.gz
+          tar zxf swiftly.tar.gz
+          ./swiftly init -y --skip-install
+          . "$HOME/.local/share/swiftly/env.sh"
+          echo "$(dirname $(which swiftly))" >> $GITHUB_PATH
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        run: swiftly install -u -y
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Install SDK bundle
+        run: |
+          VERSION=$(cat .swift-version | xargs)
+          BUNDLE="${{ matrix.target.bundle }}"
+          case "$BUNDLE" in
+            static-linux-*) SDK_DIR="static-sdk" ;;
+            *) SDK_DIR="${BUNDLE}-sdk" ;;
+          esac
+          swift sdk install \
+            "https://download.swift.org/swift-${VERSION}-release/${SDK_DIR}/swift-${VERSION}-RELEASE/swift-${VERSION}-RELEASE_${BUNDLE}.artifactbundle.tar.gz" \
+            --checksum ${{ matrix.target.checksum }}
+
+      - name: Link the Android SDK against the runner's NDK
+        if: matrix.target.bundle == 'android'
+        run: |
+          # The ubuntu runner image already ships an Android NDK, which
+          # setup-android-sdk.sh locates on its own; the script echoes which
+          # one it linked, so a future image bump shows up in this log.
+          SWIFT_SDKS_DIR=$(find "$HOME" -maxdepth 5 -type d -name "swift-sdks" 2>/dev/null | head -n 1)
+          if [ -z "$SWIFT_SDKS_DIR" ]; then
+            echo "Error: swift-sdks directory not found"
+            exit 1
+          fi
+          cd "$(dirname "$SWIFT_SDKS_DIR")"
+          ./swift-sdks/*_android.artifactbundle/swift-android/scripts/setup-android-sdk.sh
+
+      - name: Build
+        run: swift build -v --swift-sdk ${{ matrix.target.sdk }} ${{ matrix.target.build-option }}
+
+  windows-build:
+    name: Windows
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read .swift-version
+        id: swift-version
+        shell: bash
+        run: echo "version=$(cat .swift-version | xargs)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Swift
+        uses: SwiftyLab/setup-swift@v1.14.0
+        with:
+          swift-version: ${{ steps.swift-version.outputs.version }}
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build -v
+
+      # Separate from `swift test`, which reports a test-build failure on
+      # Windows as a bare "error: fatalError" with the real diagnostic
+      # swallowed.
+      - name: Build tests
+        run: swift build --build-tests -v
+
+      - name: Test
+        run: swift test -v
